@@ -1,526 +1,639 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Outfit Analysis AI — Final</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+Malayalam:wght@400;700&display=swap" rel="stylesheet">
+  <title>Outfit Analysis AI — v2.6 (Gender + Diverse Scoring)</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+Malayalam:wght@400;700&display=swap"
+    rel="stylesheet">
   <style>
-    :root{
-      --bg1:#0f172a;
-      --card:#ffffff;
-      --accent:#ff6b35;
-      --accent-dark:#e6512a;
-      --muted:#6b7280;
-      --glass: rgba(255,255,255,0.07);
-      --glass-2: rgba(255,255,255,0.9);
-      --popup-bg: rgba(11,18,32,0.88);
+    /* --- THEME VARIABLES --- */
+    :root {
+      --bg1: #0f172a;
+      --card: #ffffff;
+      --accent: #ff6b35;
+      --accent-dark: #e6512a;
+      --muted: #6b7280;
     }
-    html,body{height:100%;margin:0;font-family:Inter, "Noto Sans Malayalam", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;}
-    body{
-      background: radial-gradient(1200px 400px at 10% 10%, rgba(255,107,53,0.08), transparent 10%),
-                  radial-gradient(1200px 500px at 90% 90%, rgba(34,139,34,0.06), transparent 15%),
-                  linear-gradient(180deg,#071024 0%, #0b1b3a 100%);
-      color:#0b1220;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:28px;
+
+    /* --- LAYOUT & BASICS --- */
+    html, body {
+      height: 100%; margin: 0;
+      font-family: Inter, "Noto Sans Malayalam", system-ui, sans-serif;
+    }
+
+    body {
+      background: radial-gradient(1200px 400px at 10% 10%, rgba(255, 107, 53, 0.08), transparent 10%),
+        radial-gradient(1200px 500px at 90% 90%, rgba(34, 139, 34, 0.06), transparent 15%),
+        linear-gradient(180deg, #071024 0%, #0b1b3a 100%);
+      color: #0b1220;
+      display: flex; align-items: center; justify-content: center;
+      padding: 28px;
     }
 
     .frame {
-      width:100%;
-      max-width:980px;
-      display:grid;
-      grid-template-columns: 420px 1fr;
-      gap:22px;
-      align-items:start;
+      width: 100%; max-width: 980px;
+      display: grid; grid-template-columns: 420px 1fr;
+      gap: 22px; align-items: start;
     }
 
     .card, .panel {
-      background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,255,255,0.92));
-      border-radius:14px;
-      padding:18px;
-      box-shadow: 0 10px 30px rgba(2,6,23,0.35);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.92));
+      border-radius: 14px; padding: 18px;
+      box-shadow: 0 10px 30px rgba(2, 6, 23, 0.35);
     }
 
+    /* --- LEFT SIDE (CAMERA) --- */
     .brand {
-      display:flex;
-      align-items:center;
-      gap:12px;
-      margin-bottom:12px;
+      display: flex; align-items: center; gap: 12px; margin-bottom: 12px;
     }
+
     .logo {
-      width:56px;height:56px;border-radius:12px;
-      background:linear-gradient(135deg,var(--accent),#ffd166);
-      display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:22px;
-      box-shadow:0 6px 18px rgba(230,80,40,0.18);
+      width: 56px; height: 56px; border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent), #ffd166);
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-weight: 700; font-size: 22px;
+      box-shadow: 0 6px 18px rgba(230, 80, 40, 0.18);
     }
-    .brand h1{margin:0;font-size:18px;}
-    .brand p{margin:0;color:var(--muted);font-size:13px;}
 
-    .camera-wrap{
-      display:flex;flex-direction:column;gap:10px;align-items:center;
+    .camera-container {
+      position: relative;
+      border-radius: 10px; overflow: hidden;
     }
+
     video, img#photo {
-      width:100%;
-      height:280px;
-      object-fit:cover;
-      border-radius:10px;
-      background:linear-gradient(180deg,#e6eefc,#fff);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+      width: 100%; height: 280px; object-fit: cover;
+      background: #e6eefc; display: block;
     }
-    .controls { display:flex; gap:10px; margin-top:8px; width:100%; justify-content:center; flex-wrap:wrap; }
+
+    /* Red blinking dot for recording state */
+    .rec-dot {
+      position: absolute; top: 10px; right: 10px;
+      background: red; color: white;
+      padding: 4px 8px; border-radius: 4px;
+      font-size: 10px; font-weight: bold;
+      display: none; box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    .rec-dot.active { display: block; animation: blink 1s infinite; }
+    @keyframes blink { 50% { opacity: 0.5; } }
+
+    .controls {
+      display: flex; gap: 10px; margin-top: 12px;
+      width: 100%; justify-content: center;
+    }
+
+    /* --- BUTTONS --- */
     .btn {
-      padding:10px 14px;
-      border-radius:10px;
-      border:0;
-      cursor:pointer;
-      font-weight:600;
-      letter-spacing:0.2px;
+      padding: 10px 14px; border-radius: 10px; border: 0;
+      cursor: pointer; font-weight: 600; font-size: 14px;
     }
-    .btn-primary{
-      background: linear-gradient(180deg,var(--accent), var(--accent-dark));
-      color:#fff; box-shadow: 0 6px 18px rgba(255,107,53,0.18);
+    .btn-primary {
+      background: linear-gradient(180deg, var(--accent), var(--accent-dark));
+      color: #fff; box-shadow: 0 6px 18px rgba(255, 107, 53, 0.18);
     }
-    .btn-ghost{
-      background:transparent;color:var(--muted);border:1px solid rgba(11,18,32,0.06);
+    .btn-ghost {
+      background: transparent; color: var(--muted);
+      border: 1px solid rgba(11, 18, 32, 0.1);
     }
-    .btn-danger{ background:#ef4444;color:#fff; }
+    .btn-danger { background: #ef4444; color: #fff; }
 
-    .hint{font-size:13px;color:var(--muted);text-align:center;margin-top:6px;}
-
-    label{font-size:13px;color:#0b1220;font-weight:600;}
+    /* --- INPUTS --- */
+    label { font-size: 13px; color: #0b1220; font-weight: 600; display:block; margin-bottom:4px;}
+     
     input[type="text"], select {
-      width:100%;padding:10px;border-radius:10px;border:1px solid rgba(11,18,32,0.06);font-size:14px;
-      background:white;
+      width: 100%; padding: 10px;
+      border-radius: 10px; border: 1px solid rgba(11, 18, 32, 0.1);
+      font-size: 14px; background: white; box-sizing: border-box;
+      margin-bottom: 10px;
     }
 
-    .two {display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;}
-
-    .color-box {
-      display:flex;
-      flex-direction:column;
-      gap:6px;
-    }
-
+    .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+     
     input[type="color"] {
-      width:100%;
-      height:44px;
-      border-radius:8px;
-      border:1px solid rgba(11,18,32,0.1);
-      cursor:pointer;
-      padding:2px;
+      width: 100%; height: 40px; border-radius: 10px;
+      border: 1px solid rgba(11, 18, 32, 0.1); cursor: pointer; padding: 0;
     }
 
-    .analysis-box{
-      background:linear-gradient(180deg, rgba(245,247,250,0.95), rgba(250,250,250,0.98));
-      border-radius:10px;padding:14px;min-height:160px;display:flex;flex-direction:column;gap:8px;
-      justify-content:center;
+    /* Gender Radio Styling */
+    .gender-group {
+      display: flex; gap: 15px; margin-bottom: 15px;
+      background: #f3f4f6; padding: 8px; border-radius: 10px;
     }
-    .analysis-text{font-style:italic;color:#0b1220;line-height:1.35;font-size:15px;}
-    .score {font-weight:700;color:var(--accent);font-size:20px;}
+    .radio-label {
+      display: flex; align-items: center; gap: 6px; 
+      font-size: 14px; cursor: pointer; color: #374151;
+    }
+    input[type="radio"] { cursor: pointer; accent-color: var(--accent); }
 
-    /* popup */
-    .popup {
-      position: fixed;
-      left: 50%;
-      transform: translateX(-50%) translateY(-10px);
-      top: 24px;
-      z-index: 9999;
-      display:flex;
-      align-items:center;
-      gap:12px;
-      padding:12px 16px;
-      background: var(--popup-bg);
-      color: white;
-      border-radius:12px;
-      box-shadow: 0 14px 40px rgba(2,6,23,0.5);
-      opacity: 0;
-      pointer-events: none;
-      transition: all 360ms cubic-bezier(.2,.9,.2,1);
-      max-width: 92%;
-      font-weight:600;
+    /* --- POPUP / MODAL STYLES --- */
+    .popup-overlay {
+      position: fixed; top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(11, 18, 32, 0.7);
+      backdrop-filter: blur(5px);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 1000; opacity: 0; pointer-events: none;
+      transition: opacity 0.3s ease;
     }
-    .popup.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
-    .popup .close {
-      background: transparent;
-      border: 1px solid rgba(255,255,255,0.18);
-      color: white;
-      padding:6px 8px;
-      border-radius:8px;
-      cursor:pointer;
-      font-weight:700;
+     
+    .popup-overlay.active { opacity: 1; pointer-events: all; }
+
+    .popup-card {
+      background: white; width: 340px; padding: 30px;
+      border-radius: 24px; text-align: center;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      transform: scale(0.8);
+      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
 
-    @media (max-width:920px){
-      .frame{grid-template-columns:1fr;}
-      video,img#photo{height:220px;}
+    .popup-overlay.active .popup-card { transform: scale(1); }
+
+    .popup-score {
+      font-size: 52px; font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), #ffd166);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin: 10px 0;
+    }
+
+    .popup-text {
+      font-size: 16px; color: #4b5563;
+      margin-bottom: 24px; line-height: 1.6;
+      white-space: pre-wrap;
+    }
+
+    @media (max-width:920px) {
+      .frame { grid-template-columns: 1fr; }
     }
   </style>
 </head>
+
 <body>
+
   <div class="frame">
-    <!-- Left: Camera + Photo -->
     <div class="card">
       <div class="brand">
         <div class="logo">OA</div>
         <div>
-          <h1>Outfit Analysis AI</h1>
-          <p class="small">Constructive style feedback — Malayalam + English</p>
+          <h1 style="margin:0; font-size:18px;">Outfit Analysis AI</h1>
+          <p style="margin:0; color:var(--muted); font-size:13px;">Auto-Detect & Occasion Logic</p>
         </div>
       </div>
 
-      <div class="camera-wrap">
+      <div class="camera-container">
         <video id="video" autoplay muted playsinline></video>
         <img id="photo" alt="Captured outfit" style="display:none;">
-        <div class="controls" role="group" aria-label="Camera controls">
-          <button id="startBtn" class="btn btn-primary" type="button">Start Camera</button>
-          <button id="captureBtn" class="btn btn-ghost" type="button" style="display:none;">Capture</button>
-          <button id="retryBtn" class="btn btn-ghost" type="button" style="display:none;">Retry</button>
-          <button id="stopBtn" class="btn btn-danger" type="button" style="display:none;">Stop</button>
-        </div>
-        <div class="hint small">Open on HTTPS / localhost. If camera permission denied, enable and retry. 😊</div>
+        <div id="recDot" class="rec-dot">● SCANNING</div>
+      </div>
+        
+      <div class="controls">
+        <button id="startBtn" class="btn btn-primary">Start Camera</button>
+        <button id="captureBtn" class="btn btn-ghost" style="display:none;">Capture</button>
+        <button id="stopBtn" class="btn btn-danger" style="display:none;">Stop</button>
       </div>
     </div>
 
-    <!-- Right: Inputs + Analysis -->
     <div class="panel">
-      <div class="two">
-        <div class="color-box">
-          <label for="shirtColor">Shirt / T-shirt Color</label>
-          <input id="shirtColor" type="color" value="#ffffff">
+      <div>
+        <label>Style Mode (Gender)</label>
+        <div class="gender-group">
+          <label class="radio-label">
+            <input type="radio" name="gender" value="men" checked> Men
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="gender" value="women"> Women
+          </label>
         </div>
-        <div class="color-box">
-          <label for="pantColor">Pants Color</label>
-          <input id="pantColor" type="color" value="#000000">
+      </div>
+
+      <div class="two">
+        <div>
+          <label>Top Color</label>
+          <input type="color" id="shirtColor" value="#ffffff">
+        </div>
+        <div>
+          <label>Bottom Color</label>
+          <input type="color" id="pantsColor" value="#000000">
         </div>
       </div>
 
       <div>
-        <label for="outfitInput">Outfit Description (auto)**</label>
-        <input id="outfitInput" type="text" placeholder="E.g., white shirt with black pants...">
+        <label>Occasion</label>
+        <select id="occasionSelect">
+          <option value="uni">University / Campus</option>
+          <option value="casual">Casual / General</option>
+          <option value="office">Office / Professional</option>
+          <option value="party">Party / Festival</option>
+          <option value="date">Date Night</option>
+          <option value="gym">Gym / Workout</option>
+        </select>
       </div>
 
-      <div class="two" style="margin-top:8px;">
-        <div>
-          <label for="occasionSelect">Occasion</label>
-          <select id="occasionSelect">
-            <option value="">Select...</option>
-            <option value="office">Office</option>
-            <option value="party">Party</option>
-            <option value="casual">Casual</option>
-            <option value="wedding">Wedding</option>
-            <option value="festival">Festival (Onam)</option>
-            <option value="date">Date</option>
-            <option value="other">Other</option>
-          </select>
-        </div>
-        <div>
-          <label for="customOcc">If Other — type</label>
-          <input id="customOcc" type="text" placeholder="E.g., Beach trip">
-        </div>
+      <div>
+        <label>Detected Outfit</label>
+        <input id="outfitInput" type="text" placeholder="Type here or scan...">
       </div>
 
-      <div style="margin-top:10px;">
-        <label for="depthRange">Analysis Depth: <span id="depthVal">5</span></label>
-        <div style="margin-top:6px;">
-          <input id="depthRange" type="range" min="1" max="10" value="5" style="width:100%;">
-        </div>
+      <div style="display:flex; gap:10px; margin-top:20px;">
+        <button id="analyzeBtn" class="btn btn-primary" style="flex:1;">✨ Analyze Look</button>
+        <button id="randomBtn" class="btn btn-ghost">Random</button>
       </div>
-
-      <div style="display:flex;gap:10px;margin-top:12px;">
-        <button id="analyzeBtn" class="btn btn-primary">Analyze My Outfit</button>
-        <button id="detectColorsBtn" class="btn btn-ghost">Detect Colors from Photo</button>
-        <button id="randomBtn" class="btn btn-ghost">Random Mode</button>
-        <button id="shareBtn" class="btn btn-ghost" style="margin-left:auto; display:none;">Share</button>
-      </div>
-
-      <div class="analysis-box" aria-live="polite" style="margin-top:12px;">
-        <div id="analysisText" class="analysis-text">Capture or describe ചെയ്ത് analysis ഇവിടെ വരം... Ready aa? 😊</div>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
-          <div id="score" class="score" style="display:none;"></div>
-          <div id="sourceNote" class="small">Powered locally — privacy friendly</div>
-        </div>
-      </div>
+      
+      <p style="font-size:12px; color:var(--muted); margin-top:15px; text-align:center;">
+        Results are processed locally.
+      </p>
     </div>
   </div>
 
-  <!-- Popup -->
-  <div id="scorePopup" class="popup" aria-hidden="true" role="status">
-    <div id="popupText">Score ready!</div>
-    <button id="popupClose" class="close">OK</button>
+  <div id="popupOverlay" class="popup-overlay">
+    <div class="popup-card">
+      <div style="font-size: 40px;">✨</div>
+      <div id="popupScore" class="popup-score">0/10</div>
+      <div id="popupFeedback" class="popup-text">Analyzing...</div>
+      <button onclick="closePopup()" class="btn btn-primary" style="width:100%">Awesome</button>
+    </div>
   </div>
 
-  <canvas id="procCanvas" style="display:none"></canvas>
-
   <script>
-    // Elements
-    const startBtn = document.getElementById('startBtn');
-    const captureBtn = document.getElementById('captureBtn');
-    const retryBtn = document.getElementById('retryBtn');
-    const stopBtn = document.getElementById('stopBtn');
-    const video = document.getElementById('video');
-    const photo = document.getElementById('photo');
-
-    const shirtColor = document.getElementById('shirtColor');
-    const pantColor = document.getElementById('pantColor');
-    const outfitInput = document.getElementById('outfitInput');
-
-    const detectColorsBtn = document.getElementById('detectColorsBtn');
-    const analyzeBtn = document.getElementById('analyzeBtn');
-    const randomBtn = document.getElementById('randomBtn');
-    const shareBtn = document.getElementById('shareBtn');
-
-    const depthRange = document.getElementById('depthRange');
-    const depthVal = document.getElementById('depthVal');
-
-    const analysisText = document.getElementById('analysisText');
-    const scoreEl = document.getElementById('score');
-    const popup = document.getElementById('scorePopup');
-    const popupText = document.getElementById('popupText');
-    const popupClose = document.getElementById('popupClose');
-
-    const procCanvas = document.getElementById('procCanvas');
-    const procCtx = procCanvas.getContext('2d');
-
-    let stream = null;
-    let canvas = document.createElement('canvas');
-
-    // small helper: map some hexs to friendly names
-    const colorNameMap = {
-      "#ffffff": "white",
-      "#000000": "black",
-      "#ff0000": "red",
-      "#0000ff": "blue",
-      "#00ff00": "green",
-      "#ffff00": "yellow",
-      "#ffa500": "orange",
-      "#800080": "purple",
-      "#808080": "gray",
-      "#a52a2a": "brown",
-      "#00aaff": "cyan",
-      "#ff69b4": "pink",
-      "#008000": "green",
-      "#f0e68c": "khaki"
+    // --- SCORE MESSAGES DATABASE ---
+    const scoreMessages = {
+      1: "🚨 Clash Alert. No coherence in color, fit, or style.",
+      2: "😬 Total Mismatch. The look is confusing or ill-fitting.",
+      3: "🤔 Proportions Off. Pieces clash or don't flatter the wearer.",
+      4: "🔄 Inconsistent Style. Items clash (e.g., casual/formal).",
+      5: "🌟 Good Base Layer! You are ready to start styling intentionally.",
+      6: "👍 Solid Look! Good fit and colors work well together.",
+      7: "✨ Very Stylish! Excellent cohesion and thoughtful detail.",
+      8: "🤩 Excellent Execution! Confident style and a great fit.",
+      9: "💎 Outstanding & Polished! Near-flawless balance and execution.",
+      10: "🔥 Absolutely Impeccable! A flawless and inspiring look."
     };
 
-    function hexToName(hex) {
-      const h = hex.toLowerCase();
-      return colorNameMap[h] || h;
+    // --- DOM ELEMENTS ---
+    const shirtColorInput = document.getElementById("shirtColor");
+    const pantsColorInput = document.getElementById("pantsColor");
+    const outfitInput = document.getElementById("outfitInput");
+    const occasionSelect = document.getElementById("occasionSelect");
+    const video = document.getElementById('video');
+    const recDot = document.getElementById('recDot');
+    const canvas = document.createElement('canvas'); 
+    
+    // --- STATE ---
+    let stream = null;
+    let detectionInterval = null;
+    let isAutoDetecting = false;
+
+    // --- PART 1: COLOR MATH (HSL) ---
+    function hexToHSL(hex) {
+      let r = 0, g = 0, b = 0;
+      if (hex.length == 4) {
+        r = "0x" + hex[1] + hex[1];
+        g = "0x" + hex[2] + hex[2];
+        b = "0x" + hex[3] + hex[3];
+      } else if (hex.length == 7) {
+        r = "0x" + hex[1] + hex[2];
+        g = "0x" + hex[3] + hex[4];
+        b = "0x" + hex[5] + hex[6];
+      }
+      r /= 255; g /= 255; b /= 255;
+      let cmin = Math.min(r, g, b), cmax = Math.max(r, g, b), delta = cmax - cmin;
+      let h = 0, s = 0, l = 0;
+
+      if (delta == 0) h = 0;
+      else if (cmax == r) h = ((g - b) / delta) % 6;
+      else if (cmax == g) h = (b - r) / delta + 2;
+      else h = (r - g) / delta + 4;
+
+      h = Math.round(h * 60);
+      if (h < 0) h += 360;
+      l = (cmax + cmin) / 2;
+      s = delta == 0 ? 0 : delta / (1 - Math.abs(2 * l - 1));
+      s = +(s * 100).toFixed(1);
+      l = +(l * 100).toFixed(1);
+
+      return { h, s, l };
     }
 
-    // update depth label
-    depthRange.addEventListener('input', ()=> depthVal.textContent = depthRange.value);
-
-    // Update outfit description when manual pickers change
-    function updateDescriptionFromColors() {
-      const s = hexToName(shirtColor.value);
-      const p = hexToName(pantColor.value);
-      outfitInput.value = `${s} shirt with ${p} pants`;
+    function getColorName(hsl) {
+      if (hsl.l < 15) return "Black";
+      if (hsl.l > 92) return "White";
+      if (hsl.s < 10) return "Gray";
+      if (hsl.h < 15 || hsl.h > 345) return "Red";
+      if (hsl.h < 45) return "Orange/Brown";
+      if (hsl.h < 70) return "Yellow";
+      if (hsl.h < 150) return "Green";
+      if (hsl.h < 260) return "Blue";
+      if (hsl.h < 300) return "Purple";
+      return "Pink";
     }
-    shirtColor.addEventListener('input', updateDescriptionFromColors);
-    pantColor.addEventListener('input', updateDescriptionFromColors);
 
-    // start camera
+    function rgbToHex(r, g, b) {
+      const toHex = (n) => {
+        const h = n.toString(16);
+        return h.length === 1 ? "0" + h : h;
+      };
+      return "#" + toHex(r) + toHex(g) + toHex(b);
+    }
+
+    // --- PART 2: ADVANCED ANALYSIS LOGIC ---
+    function generateAnalysis(shirtHex, pantsHex) {
+      const top = hexToHSL(shirtHex);
+      const bottom = hexToHSL(pantsHex);
+      const occasion = occasionSelect.value;
+      
+      // Get Gender Selection
+      const gender = document.querySelector('input[name="gender"]:checked').value;
+      
+      const topName = getColorName(top);
+      const bottomName = getColorName(bottom);
+      
+      let title = "";
+      let advice = "";
+      let score = 5.0; // Base score
+      
+      const hueDiff = Math.abs(top.h - bottom.h);
+      const realHueDiff = Math.min(hueDiff, 360 - hueDiff); // Shortest distance on wheel (0-180)
+      
+      const isTopNeutral = top.s < 15 || top.l > 90 || top.l < 12;
+      const isBotNeutral = bottom.s < 15 || bottom.l > 90 || bottom.l < 12;
+      
+      // 1. NEUTRAL LOGIC
+      if (isTopNeutral && isBotNeutral) {
+         // Both neutral
+         const lumDiff = Math.abs(top.l - bottom.l);
+         if (lumDiff > 35) {
+             title = "Sharp Contrast";
+             advice = gender === 'men' 
+               ? "Classic monochrome. Very sharp and professional." 
+               : "Chic and timeless. Add gold/silver jewelry to pop.";
+             score = 9.0;
+         } else {
+             title = "Low Contrast Neutral";
+             advice = "A bit safe. Ensure fit is perfect or add texture.";
+             score = 6.5;
+         }
+      } 
+      else if (isTopNeutral || isBotNeutral) {
+         // One neutral
+         title = "Balanced Anchor";
+         advice = gender === 'men'
+           ? `The neutral piece grounds the ${!isTopNeutral ? topName : bottomName} perfectly.`
+           : `Great balance. The color stands out against the neutral base.`;
+         score = 8.5;
+      } 
+      else {
+         // 2. COLOR WHEEL LOGIC (Neither is neutral)
+         if (realHueDiff < 25) {
+            title = "Monochromatic / Analogous";
+            advice = "Seamless flow. Very fashionable right now.";
+            score = 8.0;
+         } else if (realHueDiff > 140) {
+            title = "Complementary Contrast";
+            advice = "High energy pairing! These colors intensify each other.";
+            score = 8.5;
+         } else if (realHueDiff >= 90 && realHueDiff <= 130) {
+            // THE "CLASH" ZONE (e.g. Red + Green-Blue)
+            title = "Color Clash?";
+            advice = "These hues might fight each other. Try a neutral layer between them.";
+            score = 4.0; 
+         } else {
+            title = "Bold Choice";
+            advice = "An experimental combo. Confidence is key here.";
+            score = 6.5;
+         }
+      }
+
+      // 3. OCCASION + GENDER OVERRIDES
+      if (occasion === "uni") {
+        if(score > 7) advice = gender === 'men' ? "Great casual campus fit. Sneakers will seal the deal." : "Cute and comfy for class. Perfect with white sneakers.";
+        else advice += " For uni, comfort is king, so don't stress the colors too much.";
+      }
+      else if (occasion === "office") {
+        if (score < 6) {
+             score -= 1; // Penalize clashes more in office
+             advice = "Might be too distracting for a formal office.";
+        } else {
+             advice = gender === 'men' ? "Professional. A belt matching your shoes would look great." : "Professional and polished. A blazer would elevate this further.";
+        }
+      }
+      else if (occasion === "party") {
+        score += 0.5; // Bonus for parties
+        advice = gender === 'men' ? "Good for a night out. If it's formal, tuck the shirt." : "Fun party look! Statement earrings would match this energy.";
+      }
+      else if (occasion === "date") {
+        if(topName === 'Red') {
+             score += 1;
+             advice = "Red is a power color for dates. Great choice.";
+        }
+      }
+
+      // 4. RANDOM VARIANCE (Makes it feel organic, +/- 1.5)
+      const variance = (Math.random() * 3) - 1.5; 
+      let finalScore = score + variance;
+      
+      // Clamp 1-10
+      finalScore = Math.min(10, Math.max(1, finalScore));
+      // Round to 1 decimal
+      finalScore = Math.round(finalScore * 10) / 10;
+      
+      // Get Integer message
+      let intScore = Math.round(finalScore);
+      if(intScore < 1) intScore = 1;
+      if(intScore > 10) intScore = 10;
+      
+      const message = scoreMessages[intScore];
+
+      showPopup(finalScore, `${title}\n${message}\n\n💡 Tip (${gender === 'men' ? 'Men' : 'Women'}): ${advice}`);
+    }
+
+    // --- PART 3: POPUP CONTROLS ---
+    function showPopup(score, text) {
+      document.getElementById('popupScore').textContent = score + "/10";
+      document.getElementById('popupFeedback').textContent = text;
+      document.getElementById('popupOverlay').classList.add('active');
+    }
+
+    function closePopup() {
+      document.getElementById('popupOverlay').classList.remove('active');
+    }
+
+    document.getElementById('popupOverlay').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('popupOverlay')) closePopup();
+    });
+
+    // --- PART 4: CAMERA & AUTO DETECT ---
+    function clamp(val, min, max) { return Math.max(min, Math.min(max, val)); }
+
+    function sampleAreaFromContext(ctx, width, height, region) {
+      const sampleW = Math.min(80, Math.max(4, Math.floor(width * 0.18)));
+      const sampleH = Math.min(80, Math.max(4, Math.floor(height * 0.12)));
+      const x = clamp(region.x, 0, width - sampleW);
+      const y = clamp(region.y, 0, height - sampleH);
+
+      try {
+        const imageData = ctx.getImageData(x, y, sampleW, sampleH).data;
+        let r = 0, g = 0, b = 0, count = 0;
+        for (let i = 0; i < imageData.length; i += 4) {
+          r += imageData[i];
+          g += imageData[i + 1];
+          b += imageData[i + 2];
+          count++;
+        }
+        return { r: Math.round(r / count), g: Math.round(g / count), b: Math.round(b / count) };
+      } catch (e) {
+        return { r: 255, g: 255, b: 255 };
+      }
+    }
+
+    function sampleFrameAndUpdateInputs() {
+      if (!video.videoWidth || !video.videoHeight || !isAutoDetecting) return null;
+      const ctx = canvas.getContext('2d');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0);
+
+      const width = canvas.width, height = canvas.height;
+      const topRegion = { x: Math.floor(width * 0.35), y: Math.floor(height * 0.18) };
+      const botRegion = { x: Math.floor(width * 0.35), y: Math.floor(height * 0.62) };
+
+      const topAvg = sampleAreaFromContext(ctx, width, height, topRegion);
+      const botAvg = sampleAreaFromContext(ctx, width, height, botRegion);
+
+      const topHex = rgbToHex(topAvg.r, topAvg.g, topAvg.b);
+      const botHex = rgbToHex(botAvg.r, botAvg.g, botAvg.b);
+
+      shirtColorInput.value = topHex;
+      pantsColorInput.value = botHex;
+
+      const topHsl = hexToHSL(topHex);
+      const botHsl = hexToHSL(botHex);
+      outfitInput.value = `Scanning... ${getColorName(topHsl)} & ${getColorName(botHsl)}`;
+    }
+
+    function detectColors() {
+      if (!isAutoDetecting) return;
+      sampleFrameAndUpdateInputs();
+    }
+
     async function startCamera() {
       try {
-        if (stream) stopCamera();
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
         video.srcObject = stream;
         video.style.display = 'block';
-        photo.style.display = 'none';
-        await video.play();
-        captureBtn.style.display = 'inline-block';
-        retryBtn.style.display = 'none';
-        stopBtn.style.display = 'inline-block';
-        startBtn.style.display = 'none';
-        analysisText.textContent = 'Camera active — position yourself and press Capture 📸';
+        document.getElementById('photo').style.display = 'none';
+        isAutoDetecting = true;
+        recDot.classList.add('active'); 
+        
+        document.getElementById('startBtn').style.display = 'none';
+        document.getElementById('stopBtn').style.display = 'inline-block';
+        document.getElementById('captureBtn').style.display = 'inline-block';
+        
+        detectionInterval = setInterval(detectColors, 500);
       } catch (err) {
-        console.error('Camera error:', err);
-        let msg = 'Ayyo! Camera access failed. ';
-        if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
-          msg += '⚠️ Use HTTPS or localhost. ';
-        }
-        if (err.name === 'NotAllowedError') msg += 'Permission denied — allow camera and retry.';
-        else if (err.name === 'NotFoundError') msg += 'No camera found on this device.';
-        else if (err.name === 'NotReadableError') msg += 'Camera in use by another app.';
-        else msg += 'Unknown error.';
-        alert(msg);
-        retryBtn.style.display = 'inline-block';
-        startBtn.style.display = 'inline-block';
+        alert("Camera error: Use HTTPS or Localhost.");
       }
     }
 
     function stopCamera() {
-      if (!stream) return;
-      try { stream.getTracks().forEach(t => t.stop()); } catch(e){/*ignore*/ }
-      stream = null;
-      video.pause();
-      video.srcObject = null;
+      isAutoDetecting = false;
+      clearInterval(detectionInterval);
+      detectionInterval = null;
+      recDot.classList.remove('active');
+      if (stream) stream.getTracks().forEach(t => t.stop());
       video.style.display = 'none';
-      captureBtn.style.display = 'none';
-      stopBtn.style.display = 'none';
-      startBtn.style.display = 'inline-block';
-      retryBtn.style.display = 'inline-block';
-      analysisText.textContent = 'Camera stopped.';
+      document.getElementById('startBtn').style.display = 'inline-block';
+      document.getElementById('stopBtn').style.display = 'none';
+      document.getElementById('captureBtn').style.display = 'none';
     }
 
-    // capture photo
-    async function capturePhoto() {
-      if (!stream) { alert('Start camera first'); return; }
-      await video.play();
-      if (video.videoWidth === 0 || video.videoHeight === 0) { alert('Camera warming up — try again'); return; }
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      photo.src = canvas.toDataURL('image/png');
-      photo.style.display = 'block';
-      // stop camera to save battery
-      stopCamera();
-      analysisText.textContent = 'Captured — press "Detect Colors from Photo" or "Analyze My Outfit".';
-      // automatically try detection (gentle)
-      tryAutoDetectColors();
-    }
-
-    function retryCamera() {
-      photo.style.display = 'none';
-      startCamera();
-    }
-
-    // Utility: compute dominant color by sampling central stripe of a region
-    function getDominantColorInRegion(ctx, sx, sy, sw, sh, sampleStep=6) {
-      const data = ctx.getImageData(sx, sy, sw, sh).data;
-      let r=0,g=0,b=0,count=0;
-      // simple downsample
-      for (let y=0; y<sh; y+=sampleStep) {
-        for (let x=0; x<sw; x+=sampleStep) {
-          const i = (y*sw + x) * 4;
-          const rr = data[i], gg = data[i+1], bb = data[i+2];
-          // ignore near-white extremely bright background pixels to reduce sky/lighting influence
-          const bright = (rr>240 && gg>240 && bb>240);
-          if (!bright) {
-            r += rr; g += gg; b += bb; count++;
-          }
-        }
-      }
-      if (count === 0) { // fallback to full average if filtered out everything
-        for (let i=0;i<data.length;i+=4){ r+=data[i]; g+=data[i+1]; b+=data[i+2]; count++; }
-      }
-      r = Math.round(r/count); g = Math.round(g/count); b = Math.round(b/count);
-      return {r,g,b};
-    }
-
-    function rgbToHex(r,g,b) {
-      const clamp = v => Math.max(0, Math.min(255, v));
-      return '#' + [clamp(r),clamp(g),clamp(b)].map(v=>v.toString(16).padStart(2,'0')).join('').toLowerCase();
-    }
-
-    // Auto-detect colors from captured photo
-    function autoDetectColorsFromPhoto() {
-      if (photo.style.display === 'none') {
-        alert('Please capture a photo first.');
+    function capturePhoto() {
+      if (!video.videoWidth || !video.videoHeight) {
+        alert("Video not ready — try again in a second.");
         return;
       }
-      // draw into procCanvas at smaller size for speed
-      const img = new Image();
-      img.src = photo.src;
-      img.onload = () => {
-        const W = img.width, H = img.height;
-        // set processing canvas to smaller width (max 800) to avoid big arrays
-        const maxW = 900;
-        const scale = Math.min(1, maxW / W);
-        procCanvas.width = Math.floor(W * scale);
-        procCanvas.height = Math.floor(H * scale);
-        procCtx.clearRect(0,0,procCanvas.width, procCanvas.height);
-        procCtx.drawImage(img, 0, 0, procCanvas.width, procCanvas.height);
-
-        const upperH = Math.floor(procCanvas.height * 0.45); // upper region (shirt)
-        const lowerY = Math.floor(procCanvas.height * 0.55); // lower region (pants)
-        const regionW = Math.floor(procCanvas.width * 0.6);
-        const regionX = Math.floor((procCanvas.width - regionW)/2);
-
-        // Shirt region: center-top
-        const shirtRegion = { sx: regionX, sy: Math.floor(procCanvas.height*0.12), sw: regionW, sh: upperH - Math.floor(procCanvas.height*0.12) };
-        // Pants region: center-bottom
-        const pantsRegion = { sx: regionX, sy: lowerY, sw: regionW, sh: procCanvas.height - lowerY - Math.floor(procCanvas.height*0.06) };
-
-        // Safety clamp
-        const clampRegion = r => ({
-          sx: Math.max(0, Math.min(procCanvas.width-1, r.sx|0)),
-          sy: Math.max(0, Math.min(procCanvas.height-1, r.sy|0)),
-          sw: Math.max(2, Math.min(procCanvas.width - (r.sx|0), r.sw|0)),
-          sh: Math.max(2, Math.min(procCanvas.height - (r.sy|0), r.sh|0))
-        });
-
-        const sR = clampRegion(shirtRegion);
-        const pR = clampRegion(pantsRegion);
-
-        const sCol = getDominantColorInRegion(procCtx, sR.sx, sR.sy, sR.sw, sR.sh);
-        const pCol = getDominantColorInRegion(procCtx, pR.sx, pR.sy, pR.sw, pR.sh);
-
-        const sHex = rgbToHex(sCol.r, sCol.g, sCol.b);
-        const pHex = rgbToHex(pCol.r, pCol.g, pCol.b);
-
-        // update color pickers but keep user override available
-        shirtColor.value = sHex;
-        pantColor.value = pHex;
-
-        // update description text using friendly names when possible
-        const sName = hexToName(sHex);
-        const pName = hexToName(pHex);
-        outfitInput.value = `${sName} shirt with ${pName} pants`;
-
-        analysisText.textContent = 'Colors detected — you can manually adjust if needed.';
-      };
-      img.onerror = () => { alert('Failed to load the captured image for color detection.'); };
-    }
-
-    // gentle auto-detect called after capture (non-intrusive)
-    function tryAutoDetectColors() {
-      // attempt but don't block user
-      try {
-        autoDetectColorsFromPhoto();
-      } catch (e) {
-        console.warn('Auto-detect failed', e);
+      isAutoDetecting = false;
+      if (detectionInterval) {
+        clearInterval(detectionInterval);
+        detectionInterval = null;
       }
+      recDot.classList.remove('active');
+
+      const ctx = canvas.getContext('2d');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0);
+      const dataUrl = canvas.toDataURL('image/png');
+
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const tmp = document.createElement('canvas');
+          tmp.width = img.width;
+          tmp.height = img.height;
+          const tctx = tmp.getContext('2d');
+          tctx.drawImage(img, 0, 0);
+
+          const width = tmp.width, height = tmp.height;
+          const topRegion = { x: Math.floor(width * 0.35), y: Math.floor(height * 0.18) };
+          const botRegion = { x: Math.floor(width * 0.35), y: Math.floor(height * 0.62) };
+
+          const topAvg = sampleAreaFromContext(tctx, width, height, topRegion);
+          const botAvg = sampleAreaFromContext(tctx, width, height, botRegion);
+
+          const topHex = rgbToHex(topAvg.r, topAvg.g, topAvg.b);
+          const botHex = rgbToHex(botAvg.r, botAvg.g, botAvg.b);
+
+          const photoEl = document.getElementById('photo');
+          photoEl.src = dataUrl;
+          photoEl.style.display = 'block';
+          video.style.display = 'none';
+
+          shirtColorInput.value = topHex;
+          pantsColorInput.value = botHex;
+
+          const tName = getColorName(hexToHSL(topHex));
+          const bName = getColorName(hexToHSL(botHex));
+          outfitInput.value = `${tName} & ${bName}`;
+
+        } catch (e) {
+          console.error(e);
+        } finally {
+          if (stream) stream.getTracks().forEach(t => t.stop());
+          stream = null;
+          document.getElementById('startBtn').style.display = 'inline-block';
+          document.getElementById('stopBtn').style.display = 'none';
+          document.getElementById('captureBtn').style.display = 'none';
+        }
+      };
+      img.src = dataUrl;
     }
 
-    // Positive messages for scores 1..10
-    function getPositiveMessage(score) {
-      if (score === 10) return "🔥 Perfect combo! Absolutely stunning — premium level styling!";
-      if (score === 9) return "✨ Superb look! You clearly know what works for you!";
-      if (score === 8) return "🌟 Very stylish! Your sense of coordination really shows.";
-      if (score === 7) return "😎 Great outfit! Clean, confident and balanced.";
-      if (score === 6) return "👍 Nice style! You’re choosing solid pieces that work well together.";
-      if (score === 5) return "🙂 Good fit! Nice and simple — effortless styling.";
-      if (score === 4) return "😊 Neat and casual! Very natural outfit choice.";
-      if (score === 3) return "🌼 Relaxed vibe! Your outfit looks comfy and easy-going.";
-      if (score === 2) return "🌱 Simple and minimal — clean and honest style!";
-      return "💫 Very chill vibe — minimal and comfortable look!";
-    }
-
-    // show popup with message and auto-close
-    let popupTimeout = null;
-    function showPopup(message) {
-      popupText.textContent = message;
-      popup.classList.add('show');
-      popup.setAttribute('aria-hidden','false');
-
-      if (popupTimeout) clearTimeout(popupTimeout);
-      popupTimeout = setTimeout(() => {
-        popup.classList.remove('show');
-        popup.setAttribute('aria-hidden','true');
-      }, 3000);
-    }
-
-    popupClose.addEventListener('click', () => {
-      if (popupTimeout) clearTimeout(popupTimeout);
-      popup.classList.remove('show');
-      popup.setAttribute('aria-hidden','true');
+    document.getElementById('startBtn').addEventListener('click', startCamera);
+    document.getElementById('stopBtn').addEventListener('click', stopCamera);
+    document.getElementById('captureBtn').addEventListener('click', capturePhoto);
+    document.getElementById('analyzeBtn').addEventListener('click', () => {
+      generateAnalysis(shirtColorInput.value, pantsColorInput.value);
+    });
+     
+    [shirtColorInput, pantsColorInput].forEach(el => {
+      el.addEventListener('input', () => {
+          const top = hexToHSL(shirtColorInput.value);
+          const bot = hexToHSL(pantsColorInput.value);
+          outfitInput.value = `${getColorName(top)} top + ${getColorName(bot)} bottom`;
+      });
     });
 
-    // Analyze outfit (uses color values + optional description)
-    function analyzeOutfit() {
-      const desc = outfitInput.value.trim(
+    document.getElementById('randomBtn').addEventListener('click', () => {
+      const r1 = Math.floor(Math.random()*16777215).toString(16);
+      const r2 = Math.floor(Math.random()*16777215).toString(16);
+      shirtColorInput.value = "#" + r1.padEnd(6, '0');
+      pantsColorInput.value = "#" + r2.padEnd(6, '0');
+      const t = hexToHSL(shirtColorInput.value);
+      const b = hexToHSL(pantsColorInput.value);
+      outfitInput.value = `Random: ${getColorName(t)} & ${getColorName(b)}`;
+    });
+  </script>
+</body>
+</html>
