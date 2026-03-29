@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Outfit Analysis AI — Final</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+Malayalam:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg1:#0f172a;
+      --card:#ffffff;
+      --accent:#ff6b35;
+      --accent-dark:#e6512a;
+      --muted:#6b7280;
+      --glass: rgba(255,255,255,0.07);
+      --glass-2: rgba(255,255,255,0.9);
+      --popup-bg: rgba(11,18,32,0.88);
+    }
+    html,body{height:100%;margin:0;font-family:Inter, "Noto Sans Malayalam", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;}
+    body{
+      background: radial-gradient(1200px 400px at 10% 10%, rgba(255,107,53,0.08), transparent 10%),
+                  radial-gradient(1200px 500px at 90% 90%, rgba(34,139,34,0.06), transparent 15%),
+                  linear-gradient(180deg,#071024 0%, #0b1b3a 100%);
+      color:#0b1220;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:28px;
+    }
+
+    .frame {
+      width:100%;
+      max-width:980px;
+      display:grid;
+      grid-template-columns: 420px 1fr;
+      gap:22px;
+      align-items:start;
+    }
+
+    .card, .panel {
+      background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,255,255,0.92));
+      border-radius:14px;
+      padding:18px;
+      box-shadow: 0 10px 30px rgba(2,6,23,0.35);
+    }
+
+    .brand {
+      display:flex;
+      align-items:center;
+      gap:12px;
+      margin-bottom:12px;
+    }
+    .logo {
+      width:56px;height:56px;border-radius:12px;
+      background:linear-gradient(135deg,var(--accent),#ffd166);
+      display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:22px;
+      box-shadow:0 6px 18px rgba(230,80,40,0.18);
+    }
+    .brand h1{margin:0;font-size:18px;}
+    .brand p{margin:0;color:var(--muted);font-size:13px;}
+
+    .camera-wrap{
+      display:flex;flex-direction:column;gap:10px;align-items:center;
+    }
+    video, img#photo {
+      width:100%;
+      height:280px;
+      object-fit:cover;
+      border-radius:10px;
+      background:linear-gradient(180deg,#e6eefc,#fff);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+    }
+    .controls { display:flex; gap:10px; margin-top:8px; width:100%; justify-content:center; flex-wrap:wrap; }
+    .btn {
+      padding:10px 14px;
+      border-radius:10px;
+      border:0;
+      cursor:pointer;
+      font-weight:600;
+      letter-spacing:0.2px;
+    }
+    .btn-primary{
+      background: linear-gradient(180deg,var(--accent), var(--accent-dark));
+      color:#fff; box-shadow: 0 6px 18px rgba(255,107,53,0.18);
+    }
+    .btn-ghost{
+      background:transparent;color:var(--muted);border:1px solid rgba(11,18,32,0.06);
+    }
+    .btn-danger{ background:#ef4444;color:#fff; }
+
+    .hint{font-size:13px;color:var(--muted);text-align:center;margin-top:6px;}
+
+    label{font-size:13px;color:#0b1220;font-weight:600;}
+    input[type="text"], select {
+      width:100%;padding:10px;border-radius:10px;border:1px solid rgba(11,18,32,0.06);font-size:14px;
+      background:white;
+    }
+
+    .two {display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;}
+
+    .color-box {
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+
+    input[type="color"] {
+      width:100%;
+      height:44px;
+      border-radius:8px;
+      border:1px solid rgba(11,18,32,0.1);
+      cursor:pointer;
+      padding:2px;
+    }
+
+    .analysis-box{
+      background:linear-gradient(180deg, rgba(245,247,250,0.95), rgba(250,250,250,0.98));
+      border-radius:10px;padding:14px;min-height:160px;display:flex;flex-direction:column;gap:8px;
+      justify-content:center;
+    }
+    .analysis-text{font-style:italic;color:#0b1220;line-height:1.35;font-size:15px;}
+    .score {font-weight:700;color:var(--accent);font-size:20px;}
+
+    /* popup */
+    .popup {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%) translateY(-10px);
+      top: 24px;
+      z-index: 9999;
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding:12px 16px;
+      background: var(--popup-bg);
+      color: white;
+      border-radius:12px;
+      box-shadow: 0 14px 40px rgba(2,6,23,0.5);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 360ms cubic-bezier(.2,.9,.2,1);
+      max-width: 92%;
+      font-weight:600;
+    }
+    .popup.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+    .popup .close {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.18);
+      color: white;
+      padding:6px 8px;
+      border-radius:8px;
+      cursor:pointer;
+      font-weight:700;
+    }
+
+    @media (max-width:920px){
+      .frame{grid-template-columns:1fr;}
+      video,img#photo{height:220px;}
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <!-- Left: Camera + Photo -->
+    <div class="card">
+      <div class="brand">
+        <div class="logo">OA</div>
+        <div>
+          <h1>Outfit Analysis AI</h1>
+          <p class="small">Constructive style feedback — Malayalam + English</p>
+        </div>
+      </div>
+
+      <div class="camera-wrap">
+        <video id="video" autoplay muted playsinline></video>
+        <img id="photo" alt="Captured outfit" style="display:none;">
+        <div class="controls" role="group" aria-label="Camera controls">
+          <button id="startBtn" class="btn btn-primary" type="button">Start Camera</button>
+          <button id="captureBtn" class="btn btn-ghost" type="button" style="display:none;">Capture</button>
+          <button id="retryBtn" class="btn btn-ghost" type="button" style="display:none;">Retry</button>
+          <button id="stopBtn" class="btn btn-danger" type="button" style="display:none;">Stop</button>
+        </div>
+        <div class="hint small">Open on HTTPS / localhost. If camera permission denied, enable and retry. 😊</div>
+      </div>
+    </div>
+
+    <!-- Right: Inputs + Analysis -->
+    <div class="panel">
+      <div class="two">
+        <div class="color-box">
+          <label for="shirtColor">Shirt / T-shirt Color</label>
+          <input id="shirtColor" type="color" value="#ffffff">
+        </div>
+        <div class="color-box">
+          <label for="pantColor">Pants Color</label>
+          <input id="pantColor" type="color" value="#000000">
+        </div>
+      </div>
+
+      <div>
+        <label for="outfitInput">Outfit Description (auto)**</label>
+        <input id="outfitInput" type="text" placeholder="E.g., white shirt with black pants...">
+      </div>
+
+      <div class="two" style="margin-top:8px;">
+        <div>
+          <label for="occasionSelect">Occasion</label>
+          <select id="occasionSelect">
+            <option value="">Select...</option>
+            <option value="office">Office</option>
+            <option value="party">Party</option>
+            <option value="casual">Casual</option>
+            <option value="wedding">Wedding</option>
+            <option value="festival">Festival (Onam)</option>
+            <option value="date">Date</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div>
+          <label for="customOcc">If Other — type</label>
+          <input id="customOcc" type="text" placeholder="E.g., Beach trip">
+        </div>
+      </div>
+
+      <div style="margin-top:10px;">
+        <label for="depthRange">Analysis Depth: <span id="depthVal">5</span></label>
+        <div style="margin-top:6px;">
+          <input id="depthRange" type="range" min="1" max="10" value="5" style="width:100%;">
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:12px;">
+        <button id="analyzeBtn" class="btn btn-primary">Analyze My Outfit</button>
+        <button id="detectColorsBtn" class="btn btn-ghost">Detect Colors from Photo</button>
+        <button id="randomBtn" class="btn btn-ghost">Random Mode</button>
+        <button id="shareBtn" class="btn btn-ghost" style="margin-left:auto; display:none;">Share</button>
+      </div>
+
+      <div class="analysis-box" aria-live="polite" style="margin-top:12px;">
+        <div id="analysisText" class="analysis-text">Capture or describe ചെയ്ത് analysis ഇവിടെ വരം... Ready aa? 😊</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
+          <div id="score" class="score" style="display:none;"></div>
+          <div id="sourceNote" class="small">Powered locally — privacy friendly</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Popup -->
+  <div id="scorePopup" class="popup" aria-hidden="true" role="status">
+    <div id="popupText">Score ready!</div>
+    <button id="popupClose" class="close">OK</button>
+  </div>
+
+  <canvas id="procCanvas" style="display:none"></canvas>
+
+  <script>
+    // Elements
+    const startBtn = document.getElementById('startBtn');
+    const captureBtn = document.getElementById('captureBtn');
+    const retryBtn = document.getElementById('retryBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const video = document.getElementById('video');
+    const photo = document.getElementById('photo');
+
+    const shirtColor = document.getElementById('shirtColor');
+    const pantColor = document.getElementById('pantColor');
+    const outfitInput = document.getElementById('outfitInput');
+
+    const detectColorsBtn = document.getElementById('detectColorsBtn');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const randomBtn = document.getElementById('randomBtn');
+    const shareBtn = document.getElementById('shareBtn');
+
+    const depthRange = document.getElementById('depthRange');
+    const depthVal = document.getElementById('depthVal');
+
+    const analysisText = document.getElementById('analysisText');
+    const scoreEl = document.getElementById('score');
+    const popup = document.getElementById('scorePopup');
+    const popupText = document.getElementById('popupText');
+    const popupClose = document.getElementById('popupClose');
+
+    const procCanvas = document.getElementById('procCanvas');
+    const procCtx = procCanvas.getContext('2d');
+
+    let stream = null;
+    let canvas = document.createElement('canvas');
+
+    // small helper: map some hexs to friendly names
+    const colorNameMap = {
+      "#ffffff": "white",
+      "#000000": "black",
+      "#ff0000": "red",
+      "#0000ff": "blue",
+      "#00ff00": "green",
+      "#ffff00": "yellow",
+      "#ffa500": "orange",
+      "#800080": "purple",
+      "#808080": "gray",
+      "#a52a2a": "brown",
+      "#00aaff": "cyan",
+      "#ff69b4": "pink",
+      "#008000": "green",
+      "#f0e68c": "khaki"
+    };
+
+    function hexToName(hex) {
+      const h = hex.toLowerCase();
+      return colorNameMap[h] || h;
+    }
+
+    // update depth label
+    depthRange.addEventListener('input', ()=> depthVal.textContent = depthRange.value);
+
+    // Update outfit description when manual pickers change
+    function updateDescriptionFromColors() {
+      const s = hexToName(shirtColor.value);
+      const p = hexToName(pantColor.value);
+      outfitInput.value = `${s} shirt with ${p} pants`;
+    }
+    shirtColor.addEventListener('input', updateDescriptionFromColors);
+    pantColor.addEventListener('input', updateDescriptionFromColors);
+
+    // start camera
+    async function startCamera() {
+      try {
+        if (stream) stopCamera();
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+        video.srcObject = stream;
+        video.style.display = 'block';
+        photo.style.display = 'none';
+        await video.play();
+        captureBtn.style.display = 'inline-block';
+        retryBtn.style.display = 'none';
+        stopBtn.style.display = 'inline-block';
+        startBtn.style.display = 'none';
+        analysisText.textContent = 'Camera active — position yourself and press Capture 📸';
+      } catch (err) {
+        console.error('Camera error:', err);
+        let msg = 'Ayyo! Camera access failed. ';
+        if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+          msg += '⚠️ Use HTTPS or localhost. ';
+        }
+        if (err.name === 'NotAllowedError') msg += 'Permission denied — allow camera and retry.';
+        else if (err.name === 'NotFoundError') msg += 'No camera found on this device.';
+        else if (err.name === 'NotReadableError') msg += 'Camera in use by another app.';
+        else msg += 'Unknown error.';
+        alert(msg);
+        retryBtn.style.display = 'inline-block';
+        startBtn.style.display = 'inline-block';
+      }
+    }
+
+    function stopCamera() {
+      if (!stream) return;
+      try { stream.getTracks().forEach(t => t.stop()); } catch(e){/*ignore*/ }
+      stream = null;
+      video.pause();
+      video.srcObject = null;
+      video.style.display = 'none';
+      captureBtn.style.display = 'none';
+      stopBtn.style.display = 'none';
+      startBtn.style.display = 'inline-block';
+      retryBtn.style.display = 'inline-block';
+      analysisText.textContent = 'Camera stopped.';
+    }
+
+    // capture photo
+    async function capturePhoto() {
+      if (!stream) { alert('Start camera first'); return; }
+      await video.play();
+      if (video.videoWidth === 0 || video.videoHeight === 0) { alert('Camera warming up — try again'); return; }
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      photo.src = canvas.toDataURL('image/png');
+      photo.style.display = 'block';
+      // stop camera to save battery
+      stopCamera();
+      analysisText.textContent = 'Captured — press "Detect Colors from Photo" or "Analyze My Outfit".';
+      // automatically try detection (gentle)
+      tryAutoDetectColors();
+    }
+
+    function retryCamera() {
+      photo.style.display = 'none';
+      startCamera();
+    }
+
+    // Utility: compute dominant color by sampling central stripe of a region
+    function getDominantColorInRegion(ctx, sx, sy, sw, sh, sampleStep=6) {
+      const data = ctx.getImageData(sx, sy, sw, sh).data;
+      let r=0,g=0,b=0,count=0;
+      // simple downsample
+      for (let y=0; y<sh; y+=sampleStep) {
+        for (let x=0; x<sw; x+=sampleStep) {
+          const i = (y*sw + x) * 4;
+          const rr = data[i], gg = data[i+1], bb = data[i+2];
+          // ignore near-white extremely bright background pixels to reduce sky/lighting influence
+          const bright = (rr>240 && gg>240 && bb>240);
+          if (!bright) {
+            r += rr; g += gg; b += bb; count++;
+          }
+        }
+      }
+      if (count === 0) { // fallback to full average if filtered out everything
+        for (let i=0;i<data.length;i+=4){ r+=data[i]; g+=data[i+1]; b+=data[i+2]; count++; }
+      }
+      r = Math.round(r/count); g = Math.round(g/count); b = Math.round(b/count);
+      return {r,g,b};
+    }
+
+    function rgbToHex(r,g,b) {
+      const clamp = v => Math.max(0, Math.min(255, v));
+      return '#' + [clamp(r),clamp(g),clamp(b)].map(v=>v.toString(16).padStart(2,'0')).join('').toLowerCase();
+    }
+
+    // Auto-detect colors from captured photo
+    function autoDetectColorsFromPhoto() {
+      if (photo.style.display === 'none') {
+        alert('Please capture a photo first.');
+        return;
+      }
+      // draw into procCanvas at smaller size for speed
+      const img = new Image();
+      img.src = photo.src;
+      img.onload = () => {
+        const W = img.width, H = img.height;
+        // set processing canvas to smaller width (max 800) to avoid big arrays
+        const maxW = 900;
+        const scale = Math.min(1, maxW / W);
+        procCanvas.width = Math.floor(W * scale);
+        procCanvas.height = Math.floor(H * scale);
+        procCtx.clearRect(0,0,procCanvas.width, procCanvas.height);
+        procCtx.drawImage(img, 0, 0, procCanvas.width, procCanvas.height);
+
+        const upperH = Math.floor(procCanvas.height * 0.45); // upper region (shirt)
+        const lowerY = Math.floor(procCanvas.height * 0.55); // lower region (pants)
+        const regionW = Math.floor(procCanvas.width * 0.6);
+        const regionX = Math.floor((procCanvas.width - regionW)/2);
+
+        // Shirt region: center-top
+        const shirtRegion = { sx: regionX, sy: Math.floor(procCanvas.height*0.12), sw: regionW, sh: upperH - Math.floor(procCanvas.height*0.12) };
+        // Pants region: center-bottom
+        const pantsRegion = { sx: regionX, sy: lowerY, sw: regionW, sh: procCanvas.height - lowerY - Math.floor(procCanvas.height*0.06) };
+
+        // Safety clamp
+        const clampRegion = r => ({
+          sx: Math.max(0, Math.min(procCanvas.width-1, r.sx|0)),
+          sy: Math.max(0, Math.min(procCanvas.height-1, r.sy|0)),
+          sw: Math.max(2, Math.min(procCanvas.width - (r.sx|0), r.sw|0)),
+          sh: Math.max(2, Math.min(procCanvas.height - (r.sy|0), r.sh|0))
+        });
+
+        const sR = clampRegion(shirtRegion);
+        const pR = clampRegion(pantsRegion);
+
+        const sCol = getDominantColorInRegion(procCtx, sR.sx, sR.sy, sR.sw, sR.sh);
+        const pCol = getDominantColorInRegion(procCtx, pR.sx, pR.sy, pR.sw, pR.sh);
+
+        const sHex = rgbToHex(sCol.r, sCol.g, sCol.b);
+        const pHex = rgbToHex(pCol.r, pCol.g, pCol.b);
+
+        // update color pickers but keep user override available
+        shirtColor.value = sHex;
+        pantColor.value = pHex;
+
+        // update description text using friendly names when possible
+        const sName = hexToName(sHex);
+        const pName = hexToName(pHex);
+        outfitInput.value = `${sName} shirt with ${pName} pants`;
+
+        analysisText.textContent = 'Colors detected — you can manually adjust if needed.';
+      };
+      img.onerror = () => { alert('Failed to load the captured image for color detection.'); };
+    }
+
+    // gentle auto-detect called after capture (non-intrusive)
+    function tryAutoDetectColors() {
+      // attempt but don't block user
+      try {
+        autoDetectColorsFromPhoto();
+      } catch (e) {
+        console.warn('Auto-detect failed', e);
+      }
+    }
+
+    // Positive messages for scores 1..10
+    function getPositiveMessage(score) {
+      if (score === 10) return "🔥 Perfect combo! Absolutely stunning — premium level styling!";
+      if (score === 9) return "✨ Superb look! You clearly know what works for you!";
+      if (score === 8) return "🌟 Very stylish! Your sense of coordination really shows.";
+      if (score === 7) return "😎 Great outfit! Clean, confident and balanced.";
+      if (score === 6) return "👍 Nice style! You’re choosing solid pieces that work well together.";
+      if (score === 5) return "🙂 Good fit! Nice and simple — effortless styling.";
+      if (score === 4) return "😊 Neat and casual! Very natural outfit choice.";
+      if (score === 3) return "🌼 Relaxed vibe! Your outfit looks comfy and easy-going.";
+      if (score === 2) return "🌱 Simple and minimal — clean and honest style!";
+      return "💫 Very chill vibe — minimal and comfortable look!";
+    }
+
+    // show popup with message and auto-close
+    let popupTimeout = null;
+    function showPopup(message) {
+      popupText.textContent = message;
+      popup.classList.add('show');
+      popup.setAttribute('aria-hidden','false');
+
+      if (popupTimeout) clearTimeout(popupTimeout);
+      popupTimeout = setTimeout(() => {
+        popup.classList.remove('show');
+        popup.setAttribute('aria-hidden','true');
+      }, 3000);
+    }
+
+    popupClose.addEventListener('click', () => {
+      if (popupTimeout) clearTimeout(popupTimeout);
+      popup.classList.remove('show');
+      popup.setAttribute('aria-hidden','true');
+    });
+
+    // Analyze outfit (uses color values + optional description)
+    function analyzeOutfit() {
+      const desc = outfitInput.value.trim(
